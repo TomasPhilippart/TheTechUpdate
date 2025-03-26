@@ -39,10 +39,43 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 // Cache object to store fetched data
 let cachedFeeds: CachedData | null = null;
 
+// Define types for RSS category formats
+type CategoryObject = {
+  $?: {
+    term?: string;
+  };
+  term?: string;
+};
+
+type RSSCategory = string | CategoryObject;
+
+interface RSSItem {
+  title?: string;
+  link?: string;
+  pubDate?: string;
+  isoDate?: string;
+  content?: string;
+  'content:encoded'?: string;
+  description?: string;
+  summary?: string;
+  categories?: Array<RSSCategory> | string;
+  author?: string;
+  'dc:creator'?: string;
+  'media:content'?: {
+    $?: {
+      url?: string;
+    };
+  };
+  enclosure?: {
+    url?: string;
+  };
+  [key: string]: unknown;
+}
+
 /**
  * Extract the most suitable summary text from a feed item
  */
-function extractSummary(item: any): string | undefined {
+function extractSummary(item: RSSItem): string | undefined {
   // Try different fields that might contain summaries
   return (
     item['content:encoded'] || 
@@ -112,7 +145,7 @@ function decodeHTMLEntities(text: string): string {
 /**
  * Extract article image URL if available
  */
-function extractImageUrl(item: any): string | undefined {
+function extractImageUrl(item: RSSItem): string | undefined {
   if (item['media:content'] && item['media:content']['$'] && item['media:content']['$'].url) {
     return item['media:content']['$'].url;
   }
@@ -136,7 +169,7 @@ function extractImageUrl(item: any): string | undefined {
 /**
  * Extract author information
  */
-function extractAuthor(item: any): string | undefined {
+function extractAuthor(item: RSSItem): string | undefined {
   return item['dc:creator'] || item.author || undefined;
 }
 
@@ -161,9 +194,12 @@ export async function fetchFeeds(feeds: {
       const parsedFeed = await parser.parseURL(feed.url);
       
       const items = parsedFeed.items.map(item => {
+        // Type assertion to make TypeScript understand this is compatible with RSSItem
+        const rssItem = item as unknown as RSSItem;
+        
         // Extract summary with intelligent fallbacks, respecting the showSummary option
         const showSummary = feed.options?.showSummary !== false;
-        const rawSummary = showSummary ? extractSummary(item) : undefined;
+        const rawSummary = showSummary ? extractSummary(rssItem) : undefined;
         const summary = cleanSummary(rawSummary);
         
         // Extract categories (could be in different formats)
@@ -178,14 +214,20 @@ export async function fetchFeeds(feeds: {
               } else if (typeof item.categories[0] === 'object') {
                 // The Verge style - array of objects with term attribute in $
                 const extractedCategories = item.categories
-                  .map((cat: any) => {
-                    // Check if it has a $ property with a term
-                    if (cat && cat.$ && cat.$.term) {
-                      return cat.$.term;
+                  .map((cat: RSSCategory) => {
+                    if (typeof cat === 'string') {
+                      return cat;
                     }
-                    // Check if it has a term property directly
-                    if (cat && cat.term) {
-                      return cat.term;
+                    // Check if it has a $ property with a term
+                    if (cat && typeof cat === 'object') {
+                      const catObj = cat as CategoryObject;
+                      if (catObj.$ && catObj.$.term) {
+                        return catObj.$.term;
+                      }
+                      // Check if it has a term property directly
+                      if (catObj.term) {
+                        return catObj.term;
+                      }
                     }
                     // If it's an object but doesn't match expected formats, try to stringify
                     return typeof cat === 'object' ? JSON.stringify(cat) : String(cat);
@@ -204,10 +246,10 @@ export async function fetchFeeds(feeds: {
         }
         
         // Extract image URL if available
-        const imageUrl = extractImageUrl(item);
+        const imageUrl = extractImageUrl(rssItem);
         
         // Extract author information
-        const author = extractAuthor(item);
+        const author = extractAuthor(rssItem);
         
         return {
           title: item.title || '',
