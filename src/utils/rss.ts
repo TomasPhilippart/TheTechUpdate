@@ -21,7 +21,7 @@ type CachedData = {
 // Global constants
 const CACHE_DURATION = 30 * 60 * 1000; // Increase to 30 minutes
 const FETCH_TIMEOUT = 10000; // 10 second timeout for each feed
-const CONCURRENT_REQUESTS = 20; // Limit concurrent requests
+const CONCURRENT_REQUESTS = 50; // Limit concurrent requests
 
 // Cache object to store fetched data
 let cachedFeeds: CachedData | null = null;

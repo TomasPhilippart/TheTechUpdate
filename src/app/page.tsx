@@ -27,12 +27,38 @@ async function NewsContent() {
       </main>
 
       <footer className="mt-12 pt-4 border-t-2 border-black dark:border-white text-sm text-center">
-        <div className="flex flex-col gap-2 items-center">
-          <div className="animate-pulse">
-            ⚡ Auto-refreshes every 5 minutes ⚡
+        <div className="flex flex-col gap-4 items-center">
+          <div className="flex flex-col gap-2 items-center">
+            <div className="animate-pulse">
+              ⚡ Auto-refreshes every 5 minutes ⚡
+            </div>
+            <div className="text-xs opacity-70">
+              Last refreshed: {lastUpdated}
+            </div>
           </div>
-          <div className="text-xs opacity-70">
-            Last refreshed: {lastUpdated}
+          
+          <div className="border-t border-gray-300 dark:border-gray-700 w-24 my-2"></div>
+          
+          <div className="flex flex-col gap-2">
+            <div className="font-medium">Curated by Tomás Philippart</div>
+            <div className="flex justify-center gap-4">
+              <a 
+                href="https://github.com/tomasphilippart" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:underline hover:opacity-80 transition-opacity"
+              >
+                GitHub
+              </a>
+              <a 
+                href="https://linkedin.com/in/tomasphilippart" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:underline hover:opacity-80 transition-opacity"
+              >
+                LinkedIn
+              </a>
+            </div>
           </div>
         </div>
       </footer>
