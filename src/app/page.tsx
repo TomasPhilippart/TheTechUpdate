@@ -20,10 +20,17 @@ async function NewsContent() {
   const categorizedNews = await fetchFeedsByCategory(feedCategories);
   const lastUpdated = new Date().toLocaleString();
 
+  // Create a combined "ALL" category with all items from all categories
+  const allItems = Object.values(categorizedNews).flatMap(items => items);
+  const withAllCategory = {
+    ALL: allItems,
+    ...categorizedNews
+  };
+
   return (
     <>
       <main>
-        <CategoryTabs categorizedNews={categorizedNews} />
+        <CategoryTabs categorizedNews={withAllCategory} />
       </main>
 
       <footer className="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t-2 border-black dark:border-white text-sm text-center">
