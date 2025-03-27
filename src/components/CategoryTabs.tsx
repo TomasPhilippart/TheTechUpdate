@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import NewsItems from "./NewsItems";
 
 interface CategoryTabsProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categorizedNews: Record<string, any[]>;
   isLoading?: boolean;
 }

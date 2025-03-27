@@ -1,5 +1,4 @@
 import Parser from 'rss-parser';
-import { setTimeout } from "timers/promises";
 
 type FeedItem = {
   title: string;
@@ -164,23 +163,38 @@ function extractAuthor(item: RSSItem): string | undefined {
 // Add this helper function for fetching with timeout
 async function fetchWithTimeout(url: string, timeout: number): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(timeout).then(() => {
-    controller.abort();
-    throw new Error(`Request timed out for: ${url}`);
+  let timeoutId: NodeJS.Timeout | null = null;
+  
+  // Create a timeout promise
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = global.setTimeout(() => {
+      controller.abort();
+      reject(new Error(`Request timed out for: ${url}`));
+    }, timeout);
   });
   
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    // Race between fetch and timeout
+    const response = await Promise.race([
+      fetch(url, { signal: controller.signal }),
+      timeoutPromise
+    ]) as Response;
+    
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status} for: ${url}`);
     }
-    timeoutId.cancel(); // Cancel the timeout
+    
     return await response.text();
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError') {
       throw new Error(`Request timed out for: ${url}`);
     }
     throw error;
+  } finally {
+    // Always clean up the timeout to prevent memory leaks
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -226,19 +240,28 @@ const parser = new Parser({
   }
 });
 
-// Override the default fetch method
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const originalParseURL = parser.parseURL.bind(parser);
 parser.parseURL = async (url: string) => {
   try {
     console.log(`Fetching: ${url}`);
-    return await originalParseURL(url);
-  } catch (error) {
-    console.error(`Error fetching ${url}:`, error.message);
+    // Use fetchWithTimeout instead of the original parser
+    const content = await fetchWithTimeout(url, FETCH_TIMEOUT);
+    // Parse the content with rss-parser (without the invalid feedUrl option)
+    return await parser.parseString(content);
+  } catch (error: unknown) {
+    // Type check for the error object
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown error';
+    
+    console.error(`Error fetching ${url}:`, errorMessage);
+    
     // Return a minimal valid feed structure
     return {
       items: [],
       title: 'Error',
-      description: error.message,
+      description: errorMessage,
       link: '',
       feedUrl: url
     };
@@ -296,17 +319,20 @@ export async function fetchFeedsByCategory(feedCategories: {
     // Use localStorage cache if available, otherwise use memory cache
     const cache = localStorageCache || cachedFeeds;
     
-    // Group cached items by category
-    const categorizedItems: Record<string, FeedItem[]> = {};
-    
-    for (const category of feedCategories) {
-      const feedNames = new Set(category.feeds.map(feed => feed.name));
-      categorizedItems[category.name] = cache.items.filter(item => 
-        feedNames.has(item.source)
-      );
+    // Add a null check to make TypeScript happy
+    if (cache) {
+      // Group cached items by category
+      const categorizedItems: Record<string, FeedItem[]> = {};
+      
+      for (const category of feedCategories) {
+        const feedNames = new Set(category.feeds.map(feed => feed.name));
+        categorizedItems[category.name] = cache.items.filter(item => 
+          feedNames.has(item.source)
+        );
+      }
+      
+      return categorizedItems;
     }
-    
-    return categorizedItems;
   }
 
   console.log('Fetching fresh feeds data');
