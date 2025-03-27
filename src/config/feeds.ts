@@ -234,10 +234,6 @@ export const feedCategories: FeedCategory[] = [
     name: "Machine Learning",
     feeds: [
       {
-        name: "OpenAI",
-        url: "https://blog.openai.com/rss/",
-      },
-      {
         name: "Google AI Blog",
         url: "http://googleresearch.blogspot.com/atom.xml",
       },
