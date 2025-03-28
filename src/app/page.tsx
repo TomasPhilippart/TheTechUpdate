@@ -37,7 +37,7 @@ async function NewsContent() {
         <div className="flex flex-col gap-3 sm:gap-5 items-center">
           <div className="flex flex-col gap-2 items-center">
             <div className="animate-pulse bg-gray-100 dark:bg-gray-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
-              ⚡ Auto-refreshes every 5 minutes ⚡
+              ⚡ Updated daily ⚡
             </div>
             <div className="text-xs opacity-70">
               Last refreshed: {lastUpdated}
