@@ -4,7 +4,7 @@ import ClientTime from "@/components/ClientTime";
 import CategoryTabs from "@/components/CategoryTabs";
 import { Suspense } from "react";
 
-export const revalidate = 600; // Revalidate every 10 minutes
+export const revalidate = 300; // Revalidate every 5 minutes
 
 // Loading component
 function LoadingState() {
